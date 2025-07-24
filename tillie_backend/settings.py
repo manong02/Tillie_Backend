@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_ratelimit',
     'authentication',
+    'shop',
     'inventory',
     'orders',
 ]
@@ -74,6 +75,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tillie_backend.wsgi.application'
 
+
+# Cache configuration for django-ratelimit
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# Temporarily disable rate limiting for development
+RATELIMIT_ENABLE = False
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -142,3 +157,5 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+AUTH_USER_MODEL = 'authentication.CustomUser'
