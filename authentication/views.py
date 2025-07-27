@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from .serializers import RegisterSerializer, UserUpdateSerializer
+from .serializers import RegisterSerializer, UserUpdateSerializer, UserListSerializer
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django_ratelimit.decorators import ratelimit
+from rest_framework.permissions import AllowAny
 
 User = get_user_model()
 
@@ -53,3 +54,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
     @ratelimit(key='ip', rate='5/m', block=True)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
+
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    permission_classes = [AllowAny]

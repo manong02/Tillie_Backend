@@ -10,11 +10,11 @@ User = get_user_model()
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True)
-    shop = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all(), required=False, allow_null=True)
+    shop_id = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'password2', 'shop')
+        fields = ('username', 'email', 'password', 'password2', 'shop_id')
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -30,12 +30,12 @@ class RegisterSerializer(serializers.ModelSerializer):
  
     def create(self, validated_data):
         validated_data.pop('password2')
-        shop = validated_data.pop('shop', None)
+        shop_id = validated_data.pop('shop_id', None)
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            shop=shop
+            shop_id=shop_id
         )
         return user
     
@@ -55,11 +55,11 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    shop = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all(), required=False, allow_null=True)
+    shop_id = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all(), required=False, allow_null=True)
     
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'shop')
+        fields = ('username', 'email', 'first_name', 'last_name', 'shop_id')
     
     def validate_username(self, value):
         # Allow current user to keep their username
@@ -85,6 +85,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data.update({
             'username': self.user.username,
             'email': self.user.email,
-            'shop_id': self.user.shop.id if self.user.shop else None,
+            'shop_id': self.user.shop_id.id if self.user.shop_id else None,
         })
         return data
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'is_staff', 'is_active', 'shop_id']

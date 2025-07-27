@@ -5,20 +5,29 @@ from .models import CustomUser
 # Register your models here.
 
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'username', 'get_hashed_password', 'email', 'get_shop_id', 'created_at', 'updated_at')
-    readonly_fields = ('created_at', 'updated_at', 'password')
+class CustomUserAdmin(UserAdmin):
+    # Add custom fields to the existing UserAdmin fieldsets
+    fieldsets = UserAdmin.fieldsets + (
+        ('Shop Information', {'fields': ('shop_id', 'created_at', 'updated_at')}),
+    )
     
-    # Fields to show in the edit form
-    fields = ('username', 'email', 'first_name', 'last_name', 'shop', 'is_active', 'is_staff', 'is_superuser', 'password', 'created_at', 'updated_at')
+    # Add custom fields to the add user form
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Shop Information', {'fields': ('shop_id',)}),
+    )
     
-    # Allow editing these fields
-    list_editable = ('email',)
+    # Customize the list display to show your desired fields
+    list_display = ('id', 'username', 'email', 'get_shop_id', 'is_staff', 'is_active', 'created_at')
     
-    def get_hashed_password(self, obj):
-        return obj.password[:20] + "..." if len(obj.password) > 20 else obj.password
-    get_hashed_password.short_description = 'Hashed Password'
+    # Add filters for easy management
+    list_filter = UserAdmin.list_filter + ('shop_id', 'created_at')
+    
+    # Make timestamps read-only
+    readonly_fields = ('created_at', 'updated_at')
+    
+    # Allow quick editing of some fields
+    list_editable = ('is_active',)
     
     def get_shop_id(self, obj):
-        return obj.shop.id if obj.shop else "No shop"
+        return obj.shop_id.id if obj.shop_id else "No shop"
     get_shop_id.short_description = 'Shop ID'
