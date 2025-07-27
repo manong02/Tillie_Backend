@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django_ratelimit.decorators import ratelimit
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAdminUser
 
 User = get_user_model()
 
@@ -59,4 +59,4 @@ class MyTokenObtainPairView(TokenObtainPairView):
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserListSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
