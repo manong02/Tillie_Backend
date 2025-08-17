@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Dashboard
+    # Dashboard - Single endpoint for all product data
     path('dashboard/', views.InventoryDashboardView.as_view(), name='inventory-dashboard'),
     
     # Category URLs

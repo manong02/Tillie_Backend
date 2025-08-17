@@ -5,13 +5,14 @@ from .models import Order
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    shop_name = serializers.CharField(source='shop_id.name', read_only=True)
-    user_username = serializers.CharField(source='user_id.username', read_only=True)
+    shop_name = serializers.CharField(source='shop.name', read_only=True)
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
     
     class Meta:
         model = Order
-        fields = ['id', 'shop_id', 'shop_name', 'user_id', 'user_username', 
-                 'total_items', 'delivery_date', 'notes', 'created_at']
+        fields = ['id', 'shop', 'shop_name', 'user', 'user_username', 
+                 'category', 'category_name', 'total_items', 'delivery_date', 'notes', 'created_at']
         read_only_fields = ['created_at']
         
     def validate_total_items(self, value):
@@ -41,11 +42,12 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderListSerializer(serializers.ModelSerializer):
     """Simplified serializer for order listings"""
-    shop_name = serializers.CharField(source='shop_id.name', read_only=True)
+    shop_name = serializers.CharField(source='shop.name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
     
     class Meta:
         model = Order
-        fields = ['id', 'shop_name', 'total_items', 'delivery_date', 'created_at']
+        fields = ['id', 'shop_name', 'category_name', 'total_items', 'delivery_date', 'created_at']
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):
@@ -53,7 +55,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['shop_id', 'total_items', 'delivery_date', 'notes']
+        fields = ['shop', 'category', 'total_items', 'delivery_date', 'notes']
         
     def validate_total_items(self, value):
         if value <= 0:

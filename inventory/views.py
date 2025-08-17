@@ -202,7 +202,7 @@ class LowStockProductsView(generics.ListAPIView):
 
 class InventoryDashboardView(APIView):
     """
-    Dashboard view providing inventory statistics by category
+    Dashboard view providing all product data for frontend calculations
     """
     permission_classes = [permissions.IsAuthenticated]
     
@@ -215,41 +215,16 @@ class InventoryDashboardView(APIView):
         else:
             return Response({"error": "User not assigned to any shop"}, status=status.HTTP_403_FORBIDDEN)
         
-        # Category breakdown
-        category_stats = products.values(
+        # Get all products with necessary fields
+        products_data = products.values(
+            'id', 
+            'name', 
+            'stock_quantity', 
+            'price',
             'category_id__name',
             'category_id__id'
-        ).annotate(
-            total_stock=Sum('stock_quantity'),
-            product_count=Count('id'),
-            avg_price=Avg('price'),
-            total_value=Sum('stock_quantity') * Avg('price')
-        ).order_by('category_id__name')
-        
-        # Overall statistics
-        total_products = products.count()
-        total_stock = products.aggregate(Sum('stock_quantity'))['stock_quantity__sum'] or 0
-        low_stock_count = products.filter(stock_quantity__lt=10).count()
-        out_of_stock_count = products.filter(stock_quantity=0).count()
-        
-        # Top products by stock
-        top_products = products.order_by('-stock_quantity')[:5].values(
-            'id', 'name', 'stock_quantity', 'category_id__name'
-        )
-        
-        # Low stock alerts
-        low_stock_products = products.filter(stock_quantity__lt=10).values(
-            'id', 'name', 'stock_quantity', 'category_id__name'
-        )[:10]
+        ).order_by('name')
         
         return Response({
-            'category_breakdown': list(category_stats),
-            'overall_stats': {
-                'total_products': total_products,
-                'total_stock': total_stock,
-                'low_stock_count': low_stock_count,
-                'out_of_stock_count': out_of_stock_count
-            },
-            'top_products': list(top_products),
-            'low_stock_alerts': list(low_stock_products)
+            'products': list(products_data)
         })

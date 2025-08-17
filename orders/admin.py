@@ -6,9 +6,9 @@ from .models import Order
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_shop_name', 'total_items', 'delivery_date', 'get_status', 'get_user_name', 'created_at')
-    list_filter = ('shop_id', 'delivery_date', 'created_at')
-    search_fields = ('shop_id__name', 'user_id__username', 'notes')
+    list_display = ('id', 'get_shop_name', 'get_category_name', 'total_items', 'delivery_date', 'get_status', 'get_user_name', 'created_at')
+    list_filter = ('shop', 'category', 'delivery_date', 'created_at')
+    search_fields = ('shop__name', 'category__name', 'user__username', 'notes')
     readonly_fields = ('created_at',)
     ordering = ('-created_at',)
     list_per_page = 25
@@ -16,10 +16,10 @@ class OrderAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Order Information', {
-            'fields': ('shop_id', 'total_items', 'delivery_date')
+            'fields': ('shop', 'category', 'total_items', 'delivery_date')
         }),
         ('Additional Details', {
-            'fields': ('notes', 'user_id')
+            'fields': ('notes', 'user')
         }),
         ('Timestamps', {
             'fields': ('created_at',),
@@ -28,14 +28,19 @@ class OrderAdmin(admin.ModelAdmin):
     )
     
     def get_shop_name(self, obj):
-        return obj.shop_id.name if obj.shop_id else 'N/A'
+        return obj.shop.name if obj.shop else 'N/A'
     get_shop_name.short_description = 'Shop'
-    get_shop_name.admin_order_field = 'shop_id__name'
+    get_shop_name.admin_order_field = 'shop__name'
+    
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else 'Uncategorized'
+    get_category_name.short_description = 'Category'
+    get_category_name.admin_order_field = 'category__name'
     
     def get_user_name(self, obj):
-        return obj.user_id.username if obj.user_id else 'System'
+        return obj.user.username if obj.user else 'System'
     get_user_name.short_description = 'Created By'
-    get_user_name.admin_order_field = 'user_id__username'
+    get_user_name.admin_order_field = 'user__username'
     
     def get_status(self, obj):
         now = timezone.now()
@@ -54,7 +59,7 @@ class OrderAdmin(admin.ModelAdmin):
     get_status.short_description = 'Status'
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('shop_id', 'user_id')
+        return super().get_queryset(request).select_related('shop', 'user', 'category')
     
     # Custom actions
     actions = ['mark_as_urgent', 'extend_delivery_date']
@@ -98,6 +103,6 @@ class OrderAdmin(admin.ModelAdmin):
         
         # Make delivery_date readonly for past orders
         if obj and obj.delivery_date <= timezone.now():
-            readonly.extend(['delivery_date', 'total_items', 'shop_id'])
+            readonly.extend(['delivery_date', 'total_items', 'shop'])
             
         return readonly
