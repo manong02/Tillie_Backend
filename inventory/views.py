@@ -31,17 +31,16 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         return Category.objects.none()
     
     def perform_create(self, serializer):
-        # Custom validation: ensure user can only create categories for their shop
-        shop_id = serializer.validated_data.get('shop_id')
-        
+        # Auto-assign shop_id from authenticated user
         if not self.request.user.is_staff:
             if not hasattr(self.request.user, 'shop_id') or not self.request.user.shop_id:
                 raise PermissionDenied("You must be assigned to a shop to create categories.")
             
-            if shop_id != self.request.user.shop_id:
-                raise PermissionDenied("You can only create categories for your own shop.")
-        
-        serializer.save()
+            # Override shop_id with user's shop object
+            serializer.save(shop_id=self.request.user.shop_id)
+        else:
+            # Staff users can specify shop_id or it will be required in the serializer
+            serializer.save()
 
 
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -64,6 +63,12 @@ class ProductListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['name', 'price', 'stock_quantity', 'date_added']
     ordering = ['-date_added']
     
+    def post(self, request, *args, **kwargs):
+        print(f"DEBUG POST: User: {request.user}")
+        print(f"DEBUG POST: Request data: {request.data}")
+        print(f"DEBUG POST: User shop_id: {getattr(request.user, 'shop_id', 'NOT FOUND')}")
+        return super().post(request, *args, **kwargs)
+    
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return ProductListSerializer
@@ -77,22 +82,43 @@ class ProductListCreateView(generics.ListCreateAPIView):
         return Product.objects.none()
     
     def perform_create(self, serializer):
-        # Custom validation for product creation
-        shop_id = serializer.validated_data.get('shop_id')
+        # Auto-assign shop_id from authenticated user
         category_id = serializer.validated_data.get('category_id')
         
+        # Debug logging
+        print(f"DEBUG: User: {self.request.user}")
+        print(f"DEBUG: User has shop_id: {hasattr(self.request.user, 'shop_id')}")
+        print(f"DEBUG: User shop_id value: {getattr(self.request.user, 'shop_id', 'NOT FOUND')}")
+        print(f"DEBUG: User shop object: {getattr(self.request.user, 'shop_id', None)}")
+        print(f"DEBUG: User is_staff: {self.request.user.is_staff}")
+        
         if not self.request.user.is_staff:
+            print("DEBUG: Taking NON-STAFF branch")
             if not hasattr(self.request.user, 'shop_id') or not self.request.user.shop_id:
                 raise PermissionDenied("You must be assigned to a shop to create products.")
             
-            if shop_id != self.request.user.shop_id:
-                raise PermissionDenied("You can only create products for your own shop.")
-        
-        # Ensure category belongs to the same shop
-        if category_id and category_id.shop_id != shop_id:
-            raise ValidationError("Category must belong to the same shop as the product.")
-        
-        serializer.save()
+            # Ensure category belongs to the same shop as the user
+            if category_id and category_id.shop_id != self.request.user.shop_id:
+                raise ValidationError("Category must belong to your shop.")
+            
+            print(f"DEBUG: About to save with shop: {self.request.user.shop_id}")
+            # Override shop_id with user's shop object
+            serializer.save(shop_id=self.request.user.shop_id)
+        else:
+            print("DEBUG: Taking STAFF branch")
+            # Staff users can specify shop_id or it will be required in the serializer
+            shop_id = serializer.validated_data.get('shop_id')
+            
+            # If no shop_id provided and user has a shop, auto-assign it
+            if not shop_id and hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
+                print(f"DEBUG: Staff user has no shop_id in request, auto-assigning: {self.request.user.shop_id}")
+                serializer.save(shop_id=self.request.user.shop_id)
+            else:
+                # Ensure category belongs to the same shop
+                if category_id and shop_id and category_id.shop_id != shop_id:
+                    raise ValidationError("Category must belong to the same shop as the product.")
+                
+                serializer.save()
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):

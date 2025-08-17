@@ -8,6 +8,9 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'shop_id', 'products_count']
+        extra_kwargs = {
+            'shop_id': {'required': True}
+        }
         
     def get_products_count(self, obj):
         return obj.products.count()
@@ -22,6 +25,15 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'category_id', 'category_name', 'shop_id', 'shop_name', 
                  'price', 'vat', 'stock_quantity', 'date_added']
         read_only_fields = ['date_added']
+        extra_kwargs = {
+            'shop_id': {'required': False}
+        }
+    
+    def validate(self, data):
+        print(f"DEBUG SERIALIZER: Validating data: {data}")
+        print(f"DEBUG SERIALIZER: shop_id in data: {'shop_id' in data}")
+        print(f"DEBUG SERIALIZER: shop_id value: {data.get('shop_id', 'NOT PROVIDED')}")
+        return super().validate(data)
         
     def validate_price(self, value):
         if value < 0:
