@@ -93,82 +93,49 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().destroy(request, *args, **kwargs)
 
 
-class UpcomingOrdersView(views.APIView):
-    """View to get orders with delivery dates in the next 7 days"""
+# In views.py
+class AllOrdersView(views.APIView):
+    """View to get all orders with their status"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        from datetime import timedelta, date
-        
-        # Get orders for the next 7 days
         today = timezone.now().date()
-        tomorrow = today + timedelta(days=1)
-        end_date = timezone.now() + timedelta(days=7)
+        orders = self.get_queryset()
         
-        if hasattr(request.user, 'shop_id'):
-        
-        # Debug: Check all orders first
-          all_orders = Order.objects.all()
-        
-        if request.user.is_staff:
-            orders = Order.objects.filter(
-                delivery_date__gte=timezone.now()
-            ).select_related('shop').order_by('delivery_date')
-        elif hasattr(request.user, 'shop_id') and request.user.shop_id:
-            orders = Order.objects.filter(
-                shop=request.user.shop_id,
-                delivery_date__gte=timezone.now()
-            ).select_related('shop').order_by('delivery_date')
-            
-            # Debug: Check orders without date filter
-            all_shop_orders = Order.objects.filter(shop=request.user.shop_id)
-            
-            # Debug: Check date range
-            for order in all_shop_orders:
-                print(f"Order {order.id}: delivery_date = {order.delivery_date}")
-        else:
-            orders = Order.objects.none()
-        
-        # Transform data to match frontend model structure
-        upcoming_orders = []
+        result = []
         for order in orders:
-            # Determine status based on delivery date
-            delivery_date = order.delivery_date.date()
-            if delivery_date == today:
-                status = 1  # today
-            elif delivery_date == tomorrow:
-                status = 2  # tomorrow
+            # Determine status
+            if hasattr(order, 'is_cancelled') and order.is_cancelled:
+                status = 'cancelled'
+            elif order.delivery_date.date() < today:
+                status = 'past'
             else:
-                status = 3  # upcoming
+                status = 'upcoming'
             
-            upcoming_orders.append({
-                'id': str(order.id),
-                'items': order.total_items,
-                'value': 0,  # Calculate if you have price data
-                'category': order.category.name if order.category else 'Uncategorized',
-                'dueDate': order.delivery_date.isoformat(),
+            result.append({
+                'id': order.id,
+                'shop_name': order.shop.name,
+                'category_name': order.category.name if order.category else 'Uncategorized',
+                'total_items': order.total_items,
+                'created_at': order.created_at,
+                'delivery_date': order.delivery_date,
                 'status': status
             })
         
-        print(f"Returning {len(upcoming_orders)} upcoming orders")
-        return Response(upcoming_orders)
-
-
-class PastOrdersView(generics.ListAPIView):
-    """View to get completed/past orders"""
-    serializer_class = OrderListSerializer
-    permission_classes = [permissions.IsAuthenticated]
+        return Response({
+            'count': len(result),
+            'next': None,  # Add pagination if needed
+            'previous': None,  # Add pagination if needed
+            'results': result
+        })
     
     def get_queryset(self):
         if self.request.user.is_staff:
-            return Order.objects.filter(
-                delivery_date__lt=timezone.now()
-            ).select_related('shop').order_by('-delivery_date')
+            return Order.objects.all().select_related('shop', 'category')
         
         if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
             return Order.objects.filter(
-                shop=self.request.user.shop_id,
-                delivery_date__lt=timezone.now()
-            ).select_related('shop').order_by('-delivery_date')
+                shop=self.request.user.shop_id
+            ).select_related('shop', 'category')
         
         return Order.objects.none()

@@ -31,22 +31,14 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         return Category.objects.none()
     
     def perform_create(self, serializer):
-        # Auto-assign shop_id from authenticated user
-        print(f"DEBUG: User: {self.request.user}")
-        print(f"DEBUG: User ID: {self.request.user.id}")
-        print(f"DEBUG: User is_staff: {self.request.user.is_staff}")
-        print(f"DEBUG: User has shop_id attr: {hasattr(self.request.user, 'shop_id')}")
         if hasattr(self.request.user, 'shop_id'):
-            print(f"DEBUG: User shop_id value: {self.request.user.shop_id}")
-            print(f"DEBUG: User shop_id type: {type(self.request.user.shop_id)}")
+            serializer.save(shop_id=self.request.user.shop_id)
         
         # Check if user has shop_id assigned (works for both staff and non-staff)
         if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
-            print(f"DEBUG: Auto-assigning shop_id: {self.request.user.shop_id}")
             serializer.save(shop_id=self.request.user.shop_id)
         elif not self.request.user.is_staff:
             # Non-staff users must have a shop assigned
-            print(f"DEBUG: Non-staff user without shop assignment")
             raise PermissionDenied("You must be assigned to a shop to create categories.")
         else:
             # Staff users without shop assignment - require shop_id in request
@@ -77,9 +69,6 @@ class ProductListCreateView(generics.ListCreateAPIView):
     ordering = ['-date_added']
     
     def post(self, request, *args, **kwargs):
-        print(f"DEBUG POST: User: {request.user}")
-        print(f"DEBUG POST: Request data: {request.data}")
-        print(f"DEBUG POST: User shop_id: {getattr(request.user, 'shop_id', 'NOT FOUND')}")
         return super().post(request, *args, **kwargs)
     
     def get_serializer_class(self):
@@ -98,31 +87,20 @@ class ProductListCreateView(generics.ListCreateAPIView):
         # Auto-assign shop_id from authenticated user
         category_id = serializer.validated_data.get('category_id')
         
-        # Debug logging
-        print(f"DEBUG: User: {self.request.user}")
-        print(f"DEBUG: User has shop_id: {hasattr(self.request.user, 'shop_id')}")
-        print(f"DEBUG: User shop_id value: {getattr(self.request.user, 'shop_id', 'NOT FOUND')}")
-        print(f"DEBUG: User shop object: {getattr(self.request.user, 'shop_id', None)}")
-        print(f"DEBUG: User is_staff: {self.request.user.is_staff}")
-        
         # Check if user has shop_id assigned (works for both staff and non-staff)
         if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
-            print(f"DEBUG: Auto-assigning shop_id: {self.request.user.shop_id}")
             serializer.save(shop_id=self.request.user.shop_id)
         elif not self.request.user.is_staff:
             # Non-staff users must have a shop assigned
-            print(f"DEBUG: Non-staff user without shop assignment")
             raise PermissionDenied("You must be assigned to a shop to create products.")
         else:
             # Staff users without shop assignment - require shop_id in request
-            print(f"DEBUG: Staff user without shop assignment - checking request data")
             if 'shop_id' not in serializer.validated_data:
                 raise PermissionDenied("Staff users must specify shop_id or be assigned to a shop.")
             shop_id = serializer.validated_data.get('shop_id')
             
             # If no shop_id provided and user has a shop, auto-assign it
             if not shop_id and hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
-                print(f"DEBUG: Staff user has no shop_id in request, auto-assigning: {self.request.user.shop_id}")
                 serializer.save(shop_id=self.request.user.shop_id)
             else:
                 # Ensure category belongs to the same shop

@@ -61,10 +61,13 @@ class InventorySerializer(serializers.ModelSerializer):
 class ProductListSerializer(serializers.ModelSerializer):
     """Simplified serializer for product listings"""
     category_name = serializers.CharField(source='category_id.name', read_only=True)
+    shop_name = serializers.CharField(source='shop_id.name', read_only=True)
     
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category_name', 'price', 'stock_quantity']
+        fields = ['id', 'name', 'category_id', 'category_name', 'shop_id', 'shop_name', 
+                 'price', 'vat', 'stock_quantity', 'date_added']
+        read_only_fields = ['date_added']
 
 
 class InventoryListSerializer(serializers.ModelSerializer):
