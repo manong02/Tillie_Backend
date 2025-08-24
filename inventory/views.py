@@ -32,14 +32,27 @@ class CategoryListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         # Auto-assign shop_id from authenticated user
-        if not self.request.user.is_staff:
-            if not hasattr(self.request.user, 'shop_id') or not self.request.user.shop_id:
-                raise PermissionDenied("You must be assigned to a shop to create categories.")
-            
-            # Override shop_id with user's shop object
+        print(f"DEBUG: User: {self.request.user}")
+        print(f"DEBUG: User ID: {self.request.user.id}")
+        print(f"DEBUG: User is_staff: {self.request.user.is_staff}")
+        print(f"DEBUG: User has shop_id attr: {hasattr(self.request.user, 'shop_id')}")
+        if hasattr(self.request.user, 'shop_id'):
+            print(f"DEBUG: User shop_id value: {self.request.user.shop_id}")
+            print(f"DEBUG: User shop_id type: {type(self.request.user.shop_id)}")
+        
+        # Check if user has shop_id assigned (works for both staff and non-staff)
+        if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
+            print(f"DEBUG: Auto-assigning shop_id: {self.request.user.shop_id}")
             serializer.save(shop_id=self.request.user.shop_id)
+        elif not self.request.user.is_staff:
+            # Non-staff users must have a shop assigned
+            print(f"DEBUG: Non-staff user without shop assignment")
+            raise PermissionDenied("You must be assigned to a shop to create categories.")
         else:
-            # Staff users can specify shop_id or it will be required in the serializer
+            # Staff users without shop assignment - require shop_id in request
+            print(f"DEBUG: Staff user without shop assignment - checking request data")
+            if 'shop_id' not in serializer.validated_data:
+                raise PermissionDenied("Staff users must specify shop_id or be assigned to a shop.")
             serializer.save()
 
 
@@ -92,21 +105,19 @@ class ProductListCreateView(generics.ListCreateAPIView):
         print(f"DEBUG: User shop object: {getattr(self.request.user, 'shop_id', None)}")
         print(f"DEBUG: User is_staff: {self.request.user.is_staff}")
         
-        if not self.request.user.is_staff:
-            print("DEBUG: Taking NON-STAFF branch")
-            if not hasattr(self.request.user, 'shop_id') or not self.request.user.shop_id:
-                raise PermissionDenied("You must be assigned to a shop to create products.")
-            
-            # Ensure category belongs to the same shop as the user
-            if category_id and category_id.shop_id != self.request.user.shop_id:
-                raise ValidationError("Category must belong to your shop.")
-            
-            print(f"DEBUG: About to save with shop: {self.request.user.shop_id}")
-            # Override shop_id with user's shop object
+        # Check if user has shop_id assigned (works for both staff and non-staff)
+        if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
+            print(f"DEBUG: Auto-assigning shop_id: {self.request.user.shop_id}")
             serializer.save(shop_id=self.request.user.shop_id)
+        elif not self.request.user.is_staff:
+            # Non-staff users must have a shop assigned
+            print(f"DEBUG: Non-staff user without shop assignment")
+            raise PermissionDenied("You must be assigned to a shop to create products.")
         else:
-            print("DEBUG: Taking STAFF branch")
-            # Staff users can specify shop_id or it will be required in the serializer
+            # Staff users without shop assignment - require shop_id in request
+            print(f"DEBUG: Staff user without shop assignment - checking request data")
+            if 'shop_id' not in serializer.validated_data:
+                raise PermissionDenied("Staff users must specify shop_id or be assigned to a shop.")
             shop_id = serializer.validated_data.get('shop_id')
             
             # If no shop_id provided and user has a shop, auto-assign it

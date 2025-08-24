@@ -9,7 +9,7 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'shop_id', 'products_count']
         extra_kwargs = {
-            'shop_id': {'required': True}
+            'shop_id': {'required': False}
         }
         
     def get_products_count(self, obj):
