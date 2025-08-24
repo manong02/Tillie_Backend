@@ -35,16 +35,21 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return Order.objects.none()
     
     def perform_create(self, serializer):
-        # Custom validation: ensure user can only create orders for their shop
+        # For non-staff users, always use their assigned shop
         if not self.request.user.is_staff:
-            if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
-                # Force the shop to be the user's shop
-                serializer.save(user=self.request.user, shop=self.request.user.shop_id)
-            else:
+            if not hasattr(self.request.user, 'shop_id') or not self.request.user.shop_id:
                 raise PermissionDenied("You must be assigned to a shop to create orders.")
+            serializer.save(user=self.request.user, shop=self.request.user.shop_id)
         else:
-            # Staff can create orders for any shop, but still set the user
-            serializer.save(user=self.request.user)
+            # For staff users, use the provided shop or default to their assigned shop
+            shop = serializer.validated_data.get('shop')
+            if not shop and hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
+                shop = self.request.user.shop_id
+            
+            if not shop:
+                raise ValidationError({"shop": ["This field is required."]})
+                
+            serializer.save(user=self.request.user, shop=shop)
 
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):

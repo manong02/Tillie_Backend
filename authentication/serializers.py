@@ -81,11 +81,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-
+        
+        # Add custom claims
         data.update({
             'username': self.user.username,
             'email': self.user.email,
-            'shop_id': self.user.shop_id.id if self.user.shop_id else None,
+            'shop_id': self.user.shop_id.id if hasattr(self.user, 'shop_id') and self.user.shop_id else None,
         })
         return data
 

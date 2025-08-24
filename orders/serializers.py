@@ -56,6 +56,13 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['shop', 'category', 'total_items', 'delivery_date', 'notes']
+        extra_kwargs = {
+            'shop': {'required': False},  
+            'category': {'required': True},
+            'total_items': {'required': True},
+            'delivery_date': {'required': True},
+            'notes': {'required': False, 'allow_blank': True}
+        }
         
     def validate_total_items(self, value):
         if value <= 0:
