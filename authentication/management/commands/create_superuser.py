@@ -8,9 +8,29 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         User = get_user_model()
         
-        # Create or get the default shop
+        # Create superuser first
+        user, user_created = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin@example.com',
+                'is_staff': True,
+                'is_superuser': True
+            }
+        )
+        
+        if user_created:
+            user.set_password('admin123')
+            user.save()
+            self.stdout.write(self.style.SUCCESS('Superuser created successfully'))
+        else:
+            self.stdout.write(self.style.SUCCESS('Superuser already exists'))
+        
+        # Create or get the default shop with the user as owner
         shop, shop_created = Shop.objects.get_or_create(
             name='Default Shop',
+            defaults={
+                'owner': user
+            }
         )
         
         if shop_created:
@@ -18,18 +38,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS('Default shop already exists'))
         
-        # Create superuser if it doesn't exist
-        if not User.objects.filter(username='admin').exists():
-            user = User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+        # Assign shop to user if not already assigned
+        if not user.shop_id:
             user.shop_id = shop
             user.save()
-            self.stdout.write(self.style.SUCCESS('Superuser created and assigned to shop'))
+            self.stdout.write(self.style.SUCCESS('Superuser assigned to shop'))
         else:
-            # Update existing superuser to have shop_id if not set
-            user = User.objects.get(username='admin')
-            if not user.shop_id:
-                user.shop_id = shop
-                user.save()
-                self.stdout.write(self.style.SUCCESS('Superuser updated with shop assignment'))
-            else:
-                self.stdout.write(self.style.SUCCESS('Superuser already exists with shop assignment'))
+            self.stdout.write(self.style.SUCCESS('Superuser already has shop assignment'))
