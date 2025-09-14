@@ -1,0 +1,26 @@
+# render.yaml
+
+build:
+  os: ubuntu22.04
+  nodeVersion: "20"
+  install:
+    - pip install -r requirements.txt
+  commands:
+    - python manage.py migrate
+    - python manage.py collectstatic --noinput
+
+services:
+  - type: web
+    name: tillie-backend
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn tillie_backend.wsgi:application --log-file - --timeout 300
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.6
+      - key: PYTHONUNBUFFERED
+        value: true
+      - key: PYTHONPATH
+        value: "/opt/render/project/src"
+      - key: DISABLE_COLLECTSTATIC
+        value: "1"
