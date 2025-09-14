@@ -194,6 +194,8 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",  # Angular development server
     "http://127.0.0.1:4200",  # Alternative localhost
+    "https://tillie-818d0.web.app",  # Firebase hosting
+    "https://tillie-818d0.firebaseapp.com",  # Firebase hosting alternative
 ]
 
 CORS_ALLOW_CREDENTIALS = True
