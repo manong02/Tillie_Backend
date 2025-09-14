@@ -82,11 +82,24 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         
+        # Ensure user is authenticated
+        if not self.user or not self.user.is_authenticated:
+            raise serializers.ValidationError("Unable to authenticate with provided credentials.")
+            
+        # Safely get shop_id
+        shop_id = None
+        try:
+            if hasattr(self.user, 'shop_id') and self.user.shop_id:
+                shop_id = self.user.shop_id.id
+        except Exception:
+            # If there's any error getting shop_id, just continue without it
+            pass
+
         # Add custom claims
         data.update({
             'username': self.user.username,
             'email': self.user.email,
-            'shop_id': self.user.shop_id.id if hasattr(self.user, 'shop_id') and self.user.shop_id else None,
+            'shop_id': shop_id,
         })
         return data
 
