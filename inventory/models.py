@@ -17,6 +17,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     vat = models.DecimalField(max_digits=5, decimal_places=2)
     stock_quantity = models.IntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
     date_added = models.DateField(auto_now_add=True)
 
     def __str__(self):

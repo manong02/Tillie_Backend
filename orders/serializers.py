@@ -86,3 +86,41 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         return attrs
+
+
+class OrderUpdateSerializer(serializers.ModelSerializer):
+    """Specialized serializer for order updates without shop field requirement"""
+    
+    class Meta:
+        model = Order
+        fields = ['category', 'total_items', 'delivery_date', 'notes']
+        extra_kwargs = {
+            'category': {'required': True},
+            'total_items': {'required': True},
+            'delivery_date': {'required': True},
+            'notes': {'required': False, 'allow_blank': True}
+        }
+        
+    def validate_total_items(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Total items must be greater than 0.")
+        if value > 10000:
+            raise serializers.ValidationError("Total items cannot exceed 10,000.")
+        return value
+        
+    def validate_delivery_date(self, value):
+        # Ensure delivery date is in the future
+        if value <= timezone.now():
+            raise serializers.ValidationError("Delivery date must be in the future.")
+        
+        # Ensure delivery date is not more than 1 year in the future
+        max_date = timezone.now() + timedelta(days=365)
+        if value > max_date:
+            raise serializers.ValidationError("Delivery date cannot be more than 1 year in the future.")
+        
+        return value
+    
+    def validate_notes(self, value):
+        if value and len(value.strip()) < 3:
+            raise serializers.ValidationError("Notes must be at least 3 characters long if provided.")
+        return value.strip() if value else value

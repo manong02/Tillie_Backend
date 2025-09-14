@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.utils import timezone
 from .models import Order
-from .serializers import OrderSerializer, OrderListSerializer, OrderCreateSerializer
+from .serializers import OrderSerializer, OrderListSerializer, OrderCreateSerializer, OrderUpdateSerializer
 from shop.models import Shop
 
 
@@ -53,8 +53,14 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return OrderSerializer
+        elif self.request.method == 'PUT' or self.request.method == 'PATCH':
+            return OrderUpdateSerializer
+        return OrderSerializer
     
     def get_queryset(self):
         if self.request.user.is_staff:
@@ -71,12 +77,12 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
         if instance.delivery_date <= timezone.now():
             raise ValidationError("Cannot update orders with past delivery dates.")
         
-        # Prevent changing shop after creation
+        # Remove shop from validated_data if present and preserve existing shop
         if 'shop' in serializer.validated_data:
-            if serializer.validated_data['shop'] != instance.shop:
-                raise ValidationError("Cannot change shop for existing order.")
+            del serializer.validated_data['shop']
         
-        serializer.save()
+        # Save with existing shop preserved
+        serializer.save(shop=instance.shop)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
