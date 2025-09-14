@@ -31,9 +31,6 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         return Category.objects.none()
     
     def perform_create(self, serializer):
-        if hasattr(self.request.user, 'shop_id'):
-            serializer.save(shop_id=self.request.user.shop_id)
-        
         # Check if user has shop_id assigned (works for both staff and non-staff)
         if hasattr(self.request.user, 'shop_id') and self.request.user.shop_id:
             serializer.save(shop_id=self.request.user.shop_id)
@@ -42,7 +39,6 @@ class CategoryListCreateView(generics.ListCreateAPIView):
             raise PermissionDenied("You must be assigned to a shop to create categories.")
         else:
             # Staff users without shop assignment - require shop_id in request
-            print(f"DEBUG: Staff user without shop assignment - checking request data")
             if 'shop_id' not in serializer.validated_data:
                 raise PermissionDenied("Staff users must specify shop_id or be assigned to a shop.")
             serializer.save()
