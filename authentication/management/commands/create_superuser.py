@@ -11,11 +11,6 @@ class Command(BaseCommand):
         # Create or get the default shop
         shop, shop_created = Shop.objects.get_or_create(
             name='Default Shop',
-            defaults={
-                'address': '123 Main St',
-                'phone': '+1234567890',
-                'email': 'shop@example.com'
-            }
         )
         
         if shop_created:
